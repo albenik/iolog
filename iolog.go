@@ -9,12 +9,12 @@ import (
 	"github.com/albenik/goerrors"
 )
 
-type Operation uint8
+type Operation string
 
 const (
-	Read Operation = iota
-	Write
-	Close
+	Read  = "read"
+	Write = "write"
+	Close = "close"
 )
 
 type Record struct {
@@ -22,26 +22,21 @@ type Record struct {
 	Start     time.Time
 	Stop      time.Time
 	Data      []byte
+	Interface interface{}
 	Error     error
 }
 
 func (r *Record) String() string {
-	var o string
-	switch r.Operation {
-	case Read:
-		o = "<"
-	case Write:
-		o = ">"
-	case Close:
-		o = "X"
-	default:
-		o = "?"
+	stop := r.Stop
+	if stop.IsZero() {
+		stop = r.Start
 	}
-	var d time.Duration
-	if !r.Stop.IsZero() {
-		d = r.Stop.Sub(r.Start)
+	var iface string
+	if r.Interface != nil { // if not any typed value (but typed <nil> allowed)
+		iface = fmt.Sprintf(" %#v", r.Interface)
 	}
-	return fmt.Sprintf("%s %s %s [% X] error=%v", o, r.Start.Format("2006-01-02T15:04:05.000-0700"), d, r.Data, r.Error)
+	const tf = "2006-01-02T15:04:05.000-0700"
+	return fmt.Sprintf("%s [% X]%s (%s) %s / %s error: %v", r.Operation, r.Data, iface, stop.Sub(r.Start), r.Start.Format(tf), r.Start.Format(tf), r.Error)
 }
 
 type Wrapper struct {
@@ -120,8 +115,23 @@ func (wr *Wrapper) Close() error {
 	return err
 }
 
+func (wr *Wrapper) AppendLogRecord(r *Record) {
+	wr.log = append(wr.log, r)
+}
+
+func (wr *Wrapper) LastLogRecord() *Record {
+	if len(wr.log) > 0 {
+		return wr.log[len(wr.log)-1]
+	}
+	return nil
+}
+
 func (wr *Wrapper) Log() []*Record {
 	return wr.log
+}
+
+func (wr *Wrapper) ClearLog() {
+	wr.log = nil // TODO just reset slice length and keep capacity with configurable maximum allowed value
 }
 
 func (wr *Wrapper) String() string {

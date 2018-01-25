@@ -10,17 +10,7 @@ import (
 
 func record(r *iolog.Record) zapcore.ObjectMarshaler {
 	return zapcore.ObjectMarshalerFunc(func(obj zapcore.ObjectEncoder) error {
-		switch r.Operation {
-		case iolog.Read:
-			obj.AddString("op", "read")
-		case iolog.Write:
-			obj.AddString("op", "write")
-		case iolog.Close:
-			obj.AddString("op", "close")
-		default:
-			obj.AddString("op", "unknown")
-		}
-
+		obj.AddString("op", string(r.Operation))
 		obj.AddTime("start", r.Start)
 		stop := r.Stop
 		if stop.IsZero() {
