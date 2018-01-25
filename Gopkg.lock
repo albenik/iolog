@@ -4,8 +4,8 @@
 [[projects]]
   name = "github.com/albenik/goerrors"
   packages = ["."]
-  revision = "bcaab6afbbc4a0d5cbbe5b36c81d4d09bffa956f"
-  version = "v0.1.0"
+  revision = "f941bb834800f49af9cf77f58a1da744b34e4145"
+  version = "v0.2.0"
 
 [[projects]]
   name = "github.com/davecgh/go-spew"
@@ -53,6 +53,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "98ed8385b97fe44fb8282bd8accd544f2274dd84c5a9aab4c13a99862fcdc9b9"
+  inputs-digest = "ca51f89d898086f4761d8bbeac18cc85463c30cbb1aef79955c5a147fc0f83fe"
   solver-name = "gps-cdcl"
   solver-version = 1
