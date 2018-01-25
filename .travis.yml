@@ -20,5 +20,5 @@ before_script:
 
 script:
   - test -z $(gofmt -s -l $GO_FILES)
-  - go test -v -race ./...
-  - go vet ./...
+  - go test -v -race $(go list ./... | grep -v /vendor/)
+  - go vet $(go list ./... | grep -v /vendor/)
