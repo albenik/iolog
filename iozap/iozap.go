@@ -3,18 +3,13 @@ package iozap
 import (
 	"fmt"
 
-	"github.com/albenik/iolog"
 	"go.uber.org/zap/zapcore"
+
+	"github.com/albenik/iolog"
 )
 
-type objectMarshalerFunc func(zapcore.ObjectEncoder) error
-
-func (fn objectMarshalerFunc) MarshalLogObject(obj zapcore.ObjectEncoder) error {
-	return fn(obj)
-}
-
-func marshalLogRecord(r *iolog.Record) zapcore.ObjectMarshaler {
-	return objectMarshalerFunc(func(obj zapcore.ObjectEncoder) error {
+func record(r *iolog.Record) zapcore.ObjectMarshaler {
+	return zapcore.ObjectMarshalerFunc(func(obj zapcore.ObjectEncoder) error {
 		switch r.Operation {
 		case iolog.Read:
 			obj.AddString("op", "read")
@@ -43,11 +38,16 @@ func marshalLogRecord(r *iolog.Record) zapcore.ObjectMarshaler {
 	})
 }
 
-type IOLog []*iolog.Record
+func Log(log []*iolog.Record) zapcore.ArrayMarshaler {
+	return zapcore.ArrayMarshalerFunc(func(arr zapcore.ArrayEncoder) error {
+		for _, r := range log {
+			arr.AppendObject(record(r))
+		}
+		return nil
+	})
+}
 
-func (l IOLog) MarshalLogArray(arr zapcore.ArrayEncoder) error {
-	for _, r := range l {
-		arr.AppendObject(marshalLogRecord(r))
-	}
-	return nil
+// Keep for backward compatibility
+func IOLog(log []*iolog.Record) zapcore.ArrayMarshaler {
+	return Log(log)
 }
