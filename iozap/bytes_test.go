@@ -32,7 +32,7 @@ func TestBytesStringer(t *testing.T) {
 
 	for _, tt := range testdata {
 		out.Reset()
-		logger.Info("Test ok", zap.Stringer("bytes", iozap.BytearrayStringer(tt.data)))
+		logger.Info("Test ok", iozap.BytesArray("bytes", tt.data))
 		logger.Sync()
 		assert.Regexp(t, tt.expect, out.String())
 	}
