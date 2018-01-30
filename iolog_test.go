@@ -2,71 +2,51 @@ package iolog_test
 
 import (
 	"bytes"
-	"errors"
-	"io/ioutil"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
 
 	"github.com/albenik/iolog"
-	"github.com/stretchr/testify/assert"
 )
 
 var testdata = []byte{1, 2, 3, 4, 5, 6, 7, 8}
 
-func TestWrapper_Read(t *testing.T) {
-	r := bytes.NewReader(testdata)
-	wr := iolog.WrapReader(r)
-	dst := make([]byte, len(testdata))
-	n, err := wr.Read(dst)
+func TestIOLog_LogIO(t *testing.T) {
+	l := iolog.New(2)
+	buf := make([]byte, len(testdata))
+
+	src := bytes.NewReader(testdata)
+	n, err := l.LogIO("read", src.Read, buf)
 
 	assert.NoError(t, err)
 	assert.Equal(t, len(testdata), n)
-	assert.Equal(t, testdata, dst)
-	if !assert.Len(t, wr.Log(), 1) {
-		t.FailNow()
+	assert.Equal(t, testdata, buf)
+	if assert.Equal(t, 1, l.Len()) {
+		assert.True(t, strings.HasPrefix(l.LastRecord().String(), "read [01 02 03 04 05 06 07 08]"))
 	}
-	assert.True(t, strings.HasPrefix(wr.Log()[0].String(), "read [01 02 03 04 05 06 07 08]"))
-}
 
-func TestWrapper_Write(t *testing.T) {
-	buf := bytes.NewBuffer(make([]byte, 0, len(testdata)))
-	wr := iolog.WrapWriter(buf)
-	n, err := wr.Write(testdata)
+	dst := bytes.NewBuffer(make([]byte, 8))
+	n, err = l.LogIO("write", dst.Write, testdata)
 	assert.NoError(t, err)
 	assert.Equal(t, len(testdata), n)
-	assert.Equal(t, testdata, buf.Bytes())
-	if !assert.Len(t, wr.Log(), 1) {
-		t.FailNow()
+	assert.Equal(t, testdata, buf)
+	if assert.Equal(t, 2, l.Len()) {
+		assert.True(t, strings.HasPrefix(l.LastRecord().String(), "write [01 02 03 04 05 06 07 08]"))
 	}
-	assert.True(t, strings.HasPrefix(wr.Log()[0].String(), "write [01 02 03 04 05 06 07 08]"))
 }
 
-func TestWrapper_Close(t *testing.T) {
-	buf := bytes.NewBuffer(nil)
-	wr := iolog.WrapReadCloser(ioutil.NopCloser(buf))
-	err := wr.Close()
+func TestIOLog_LogAny(t *testing.T) {
+	l := iolog.New(1)
+	err := l.LogAny("any", func(r *iolog.Record) error {
+		r.Stop = time.Now()
+		r.Interface = 777
+		return nil
+	})
+
 	assert.NoError(t, err)
-	if !assert.Len(t, wr.Log(), 1) {
-		t.FailNow()
+	if assert.Equal(t, 1, l.Len()) {
+		assert.True(t, strings.HasPrefix(l.LastRecord().String(), "any [] 777"))
 	}
-	assert.True(t, strings.HasPrefix(wr.Log()[0].String(), "close []"))
-}
-
-func TestWrapper_AppendCustomLogRecord(t *testing.T) {
-	buf := bytes.NewBuffer(nil)
-	wr := iolog.WrapReadCloser(ioutil.NopCloser(buf))
-
-	wr.AppendLogRecord(&iolog.Record{Operation: "custom_op", Data: []byte{7, 7, 7}})
-
-	if !assert.Len(t, wr.Log(), 1) {
-		t.FailNow()
-	}
-
-	assert.True(t, strings.HasPrefix(wr.Log()[0].String(), "custom_op [07 07 07] ("))
-	assert.True(t, strings.HasSuffix(wr.Log()[0].String(), "error: <nil>"))
-
-	wr.LastLogRecord().Interface = "test string"
-	wr.LastLogRecord().Error = errors.New("test error")
-	assert.True(t, strings.HasPrefix(wr.Log()[0].String(), "custom_op [07 07 07] \"test string\" ("))
-	assert.True(t, strings.HasSuffix(wr.Log()[0].String(), "error: test error"))
 }

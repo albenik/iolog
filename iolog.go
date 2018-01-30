@@ -2,141 +2,69 @@ package iolog
 
 import (
 	"bytes"
-	"fmt"
-	"io"
 	"time"
 
 	"github.com/albenik/goerrors"
 )
 
-type Operation string
+type IOFunc func([]byte) (int, error)
 
-const (
-	Read  = "read"
-	Write = "write"
-	Close = "close"
-)
-
-type Record struct {
-	Operation Operation
-	Start     time.Time
-	Stop      time.Time
-	Data      []byte
-	Interface interface{}
-	Error     error
+type IOLog struct {
+	records []*Record
+	cap     int // Initial capacity
 }
 
-func (r *Record) String() string {
-	stop := r.Stop
-	if stop.IsZero() {
-		stop = r.Start
-	}
-	var iface string
-	if r.Interface != nil { // if not any typed value (but typed <nil> allowed)
-		iface = fmt.Sprintf(" %#v", r.Interface)
-	}
-	const tf = "2006-01-02T15:04:05.000-0700"
-	return fmt.Sprintf("%s [% X]%s (%s) %s / %s error: %v", r.Operation, r.Data, iface, stop.Sub(r.Start), r.Start.Format(tf), r.Start.Format(tf), r.Error)
+func New(cap int) *IOLog {
+	return &IOLog{records: make([]*Record, 0, cap), cap: cap}
 }
 
-type Wrapper struct {
-	reader io.Reader
-	writer io.Writer
-	closer io.Closer
-	log    []*Record
-}
-
-func WrapReader(r io.Reader) *Wrapper {
-	return &Wrapper{reader: r}
-}
-
-func WrapWriter(w io.Writer) *Wrapper {
-	return &Wrapper{writer: w}
-}
-
-func WrapReadWriter(rw io.ReadWriter) *Wrapper {
-	return &Wrapper{reader: rw, writer: rw}
-}
-
-func WrapReadCloser(rc io.ReadCloser) *Wrapper {
-	return &Wrapper{reader: rc, closer: rc}
-}
-
-func WrapWriteCloser(wc io.WriteCloser) *Wrapper {
-	return &Wrapper{writer: wc, closer: wc}
-}
-
-func WrapReadWriteCloser(rwc io.ReadWriteCloser) *Wrapper {
-	return &Wrapper{reader: rwc, writer: rwc, closer: rwc}
-}
-
-func (wr *Wrapper) logIO(fn func([]byte) (int, error), op Operation, p []byte) (int, error) {
-	rec := &Record{Operation: op, Start: time.Now()}
-	n, err := fn(p)
+func (l *IOLog) LogIO(tag string, iofn IOFunc, data []byte) (int, error) {
+	rec := &Record{Tag: tag, Start: time.Now()}
+	n, err := iofn(data)
 	rec.Stop = time.Now()
 	rec.Error = err
 	if n > 0 {
 		rec.Data = make([]byte, n)
-		copy(rec.Data, p)
+		copy(rec.Data, data)
 	}
-	wr.log = append(wr.log, rec)
+	l.records = append(l.records, rec)
 	return n, err
 }
 
-func (wr *Wrapper) Read(p []byte) (int, error) {
-	if wr.reader == nil {
-		err := errors.New("read not possible")
-		wr.log = append(wr.log, &Record{Operation: Read, Start: time.Now(), Error: err})
-		return 0, err
-	}
-	return wr.logIO(wr.reader.Read, Read, p)
-}
-
-func (wr *Wrapper) Write(p []byte) (int, error) {
-	if wr.writer == nil {
-		err := errors.New("write not possible")
-		wr.log = append(wr.log, &Record{Operation: Write, Start: time.Now(), Error: err})
-		return 0, err
-	}
-	return wr.logIO(wr.writer.Write, Write, p)
-}
-
-func (wr *Wrapper) Close() error {
-	if wr.closer == nil {
-		err := errors.New("close not possible")
-		wr.log = append(wr.log, &Record{Operation: Close, Start: time.Now(), Error: err})
-		return err
-	}
-	rec := &Record{Operation: Close, Start: time.Now()}
-	err := wr.closer.Close()
-	rec.Stop = time.Now()
-	rec.Error = err
-	wr.log = append(wr.log, rec)
+func (l *IOLog) LogAny(tag string, fn func(rec *Record) error) error {
+	rec := &Record{Tag: tag, Start: time.Now()}
+	err := fn(rec)
+	l.records = append(l.records, rec)
 	return err
 }
 
-func (wr *Wrapper) AppendLogRecord(r *Record) {
-	wr.log = append(wr.log, r)
-}
-
-func (wr *Wrapper) LastLogRecord() *Record {
-	if len(wr.log) > 0 {
-		return wr.log[len(wr.log)-1]
+func (l *IOLog) ClearLog() {
+	if cap(l.records) == l.cap {
+		l.records = l.records[:0]
+	} else {
+		l.records = make([]*Record, l.cap)
 	}
-	return nil
 }
 
-func (wr *Wrapper) Log() []*Record {
-	return wr.log
+func (l *IOLog) Len() int {
+	return len(l.records)
 }
 
-func (wr *Wrapper) ClearLog() {
-	wr.log = nil // TODO just reset slice length and keep capacity with configurable maximum allowed value
+func (l *IOLog) Records() []*Record {
+	return l.records
 }
 
-func (wr *Wrapper) String() string {
+func (l *IOLog) LastRecord() *Record {
+	if len(l.records) == 0 {
+		now := time.Now()
+		l.records = append(l.records, &Record{Tag: "error", Start: now, Error: errors.New("iolog.LastRecord() called for empty log")})
+	}
+	return l.records[len(l.records)-1]
+}
+
+func (l *IOLog) String() string {
 	var buf bytes.Buffer
-	for _, rec := range wr.log {
+	for _, rec := range l.records {
 		buf.WriteString(rec.String())
 		buf.WriteRune('\n')
 	}
