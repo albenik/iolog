@@ -28,16 +28,15 @@ func record(r *iolog.Record) zapcore.ObjectMarshaler {
 	})
 }
 
-func Log(log []*iolog.Record) zapcore.ArrayMarshaler {
-	return zapcore.ArrayMarshalerFunc(func(arr zapcore.ArrayEncoder) error {
-		for _, r := range log {
-			arr.AppendObject(record(r))
-		}
-		return nil
-	})
-}
-
-// Keep for backward compatibility
-func IOLog(log []*iolog.Record) zapcore.ArrayMarshaler {
-	return Log(log)
+func IOLog(key string, log []*iolog.Record) zapcore.Field {
+	return zapcore.Field{
+		Key:  key,
+		Type: zapcore.ArrayMarshalerType,
+		Interface: zapcore.ArrayMarshalerFunc(func(arr zapcore.ArrayEncoder) error {
+			for _, r := range log {
+				arr.AppendObject(record(r))
+			}
+			return nil
+		}),
+	}
 }

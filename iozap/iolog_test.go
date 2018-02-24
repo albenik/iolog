@@ -82,7 +82,7 @@ func TestLog(t *testing.T) {
 
 	for _, tt := range testdata {
 		out.Reset()
-		logger.Info("Test ok", zap.Array("iolog", iozap.Log(tt.data)))
+		logger.Info("Test ok", iozap.IOLog("iolog", tt.data))
 		logger.Sync()
 		assert.Regexp(t, tt.regex, out.String(), tt.msg)
 	}
