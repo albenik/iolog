@@ -18,10 +18,17 @@ func record(r *iolog.Record) zapcore.ObjectMarshaler {
 		}
 		obj.AddTime("stop", stop)
 		obj.AddDuration("dur", stop.Sub(r.Start))
-		obj.AddString("data", fmt.Sprintf("% X", r.Data))
-		if r.Error == nil {
-			obj.AddString("error", "")
-		} else {
+		if r.Data != nil {
+			switch d := r.Data.(type) {
+			case []byte:
+				obj.AddString("data", fmt.Sprintf("% X", d))
+			case fmt.Stringer:
+				obj.AddString("data", d.String())
+			default:
+				obj.AddString("data", fmt.Sprintf("%+v", d))
+			}
+		}
+		if r.Error != nil {
 			obj.AddString("error", r.Error.Error())
 		}
 		return nil

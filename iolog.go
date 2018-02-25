@@ -30,28 +30,34 @@ func (l *IOLog) LogIO(tag string, iofn IOFunc, data []byte) (int, error) {
 			Error: err,
 		}
 		if n > 0 {
-			rec.Data = make([]byte, n)
-			copy(rec.Data, data)
+			p := make([]byte, n)
+			copy(p, data)
+			rec.Data = p
 		}
 		l.records = append(l.records, rec)
 	}
 	return n, err
 }
 
-func (l *IOLog) LogAny(tag string, fn func() ([]byte, interface{}, error)) error {
+func (l *IOLog) LogAny(tag string, fn func() (interface{}, error)) error {
 	start := time.Now()
-	data, iface, err := fn()
+	data, err := fn()
 	if l.active {
 		rec := &Record{
-			Tag:       tag,
-			Start:     start,
-			Stop:      time.Now(),
-			Interface: iface,
-			Error:     err,
+			Tag:   tag,
+			Start: start,
+			Stop:  time.Now(),
+			Error: err,
 		}
-		if len(data) > 0 {
-			rec.Data = make([]byte, len(data))
-			copy(rec.Data, data)
+		switch src := data.(type) {
+		case []byte:
+			if len(src) > 0 {
+				p := make([]byte, len(src))
+				copy(p, src)
+				rec.Data = p
+			}
+		default:
+			rec.Data = data
 		}
 		l.records = append(l.records, rec)
 	}

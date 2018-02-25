@@ -5,19 +5,12 @@ import (
 	"time"
 )
 
-const (
-	Read  = "read"
-	Write = "write"
-	Close = "close"
-)
-
 type Record struct {
-	Tag       string
-	Start     time.Time
-	Stop      time.Time
-	Data      []byte
-	Interface interface{}
-	Error     error
+	Tag   string
+	Start time.Time
+	Stop  time.Time
+	Data  interface{}
+	Error error
 }
 
 func (r *Record) String() string {
@@ -25,15 +18,17 @@ func (r *Record) String() string {
 	if stop.IsZero() {
 		stop = r.Start
 	}
-	var iface string
-	if r.Interface != nil { // if not any typed value (but typed <nil> allowed)
-		switch i := r.Interface.(type) {
+	var data string
+	if r.Data != nil { // if not any typed value (but typed <nil> allowed)
+		switch d := r.Data.(type) {
+		case []byte:
+			data = fmt.Sprintf("[% X]", d)
 		case fmt.Stringer:
-			iface = i.String()
+			data = d.String()
 		default:
-			iface = fmt.Sprintf(" %v", i)
+			data = fmt.Sprintf("%+v", d)
 		}
 	}
 	const tf = "2006-01-02T15:04:05.000-0700"
-	return fmt.Sprintf("%s [% X]%s (%s) %s / %s error: %v", r.Tag, r.Data, iface, stop.Sub(r.Start), r.Start.Format(tf), r.Start.Format(tf), r.Error)
+	return fmt.Sprintf("%s %s (%s) %s / %s error: %v", r.Tag, data, stop.Sub(r.Start), r.Start.Format(tf), r.Start.Format(tf), r.Error)
 }

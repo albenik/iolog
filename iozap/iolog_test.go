@@ -24,44 +24,44 @@ func TestLog(t *testing.T) {
 		{
 			data: []*iolog.Record{
 				{
-					Tag:   iolog.Read,
+					Tag:   "read",
 					Start: time.Date(2018, 1, 1, 12, 30, 01, 11111, time.UTC),
 					Stop:  time.Date(2018, 1, 1, 12, 31, 02, 22222, time.UTC),
 					Data:  []byte{1, 2, 3, 4, 5},
 					Error: nil,
 				},
 			},
-			regex: regexp.MustCompile(`{"level":"info","ts":\d+\.\d+,"msg":"Test ok","iolog":\[{"op":"read","start":1514809801.000011,"stop":1514809862.0000222,"dur":61.000011111,"data":"01 02 03 04 05","error":""}]}`),
+			regex: regexp.MustCompile(`{"level":"info","ts":\d+\.\d+,"msg":"Test ok","iolog":\[{"op":"read","start":1514809801.000011,"stop":1514809862.0000222,"dur":61.000011111,"data":"01 02 03 04 05"}]}`),
 			msg:   "log 1",
 		}, {
 			data: []*iolog.Record{
 				{
-					Tag:   iolog.Write,
+					Tag:   "write",
 					Start: time.Date(2018, 1, 1, 12, 30, 01, 11111, time.UTC),
 					Stop:  time.Date(2018, 1, 1, 12, 31, 02, 22222, time.UTC),
 					Data:  []byte{1, 2, 3, 4, 5},
 					Error: nil,
 				},
 			},
-			regex: regexp.MustCompile(`{"level":"info","ts":\d+\.\d+,"msg":"Test ok","iolog":\[{"op":"write","start":1514809801.000011,"stop":1514809862.0000222,"dur":61.000011111,"data":"01 02 03 04 05","error":""}]}`),
+			regex: regexp.MustCompile(`{"level":"info","ts":\d+\.\d+,"msg":"Test ok","iolog":\[{"op":"write","start":1514809801.000011,"stop":1514809862.0000222,"dur":61.000011111,"data":"01 02 03 04 05"}]}`),
 			msg:   "log 2",
 		}, {
 			data: []*iolog.Record{
 				{
-					Tag:   iolog.Close,
+					Tag:   "close",
 					Start: time.Date(2018, 1, 1, 12, 30, 50, 11111, time.UTC),
 					Stop:  time.Date(2018, 1, 1, 12, 30, 50, 22222, time.UTC),
 					Data:  nil,
 					Error: nil,
 				},
 			},
-			regex: regexp.MustCompile(`{"level":"info","ts":\d+\.\d+,"msg":"Test ok","iolog":\[{"op":"close","start":1514809850.000011,"stop":1514809850.0000222,"dur":0.000011111,"data":"","error":""}]}`),
+			regex: regexp.MustCompile(`{"level":"info","ts":\d+\.\d+,"msg":"Test ok","iolog":\[{"op":"close","start":1514809850.000011,"stop":1514809850.0000222,"dur":0.000011111}]}`),
 			msg:   "log 3",
 		},
 		{
 			data: []*iolog.Record{
 				{
-					Tag:   iolog.Read,
+					Tag:   "read",
 					Start: time.Date(2018, 1, 1, 12, 30, 50, 11111, time.UTC),
 					Stop:  time.Date(2018, 1, 1, 12, 30, 50, 11111, time.UTC),
 					Data:  []byte{9},
