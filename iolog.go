@@ -12,6 +12,7 @@ type IOFunc func([]byte) (int, error)
 type IOLog struct {
 	records []*Record
 	cap     int // Initial capacity
+	active  bool
 }
 
 func New(cap int) *IOLog {
@@ -19,26 +20,50 @@ func New(cap int) *IOLog {
 }
 
 func (l *IOLog) LogIO(tag string, iofn IOFunc, data []byte) (int, error) {
-	rec := &Record{Tag: tag, Start: time.Now()}
+	start := time.Now()
 	n, err := iofn(data)
-	rec.Stop = time.Now()
-	rec.Error = err
-	if n > 0 {
-		rec.Data = make([]byte, n)
-		copy(rec.Data, data)
+	if l.active {
+		rec := &Record{
+			Tag:   tag,
+			Start: start,
+			Stop:  time.Now(),
+			Error: err,
+		}
+		if n > 0 {
+			rec.Data = make([]byte, n)
+			copy(rec.Data, data)
+		}
+		l.records = append(l.records, rec)
 	}
-	l.records = append(l.records, rec)
 	return n, err
 }
 
-func (l *IOLog) LogAny(tag string, fn func(rec *Record) error) error {
-	rec := &Record{Tag: tag, Start: time.Now()}
-	err := fn(rec)
-	l.records = append(l.records, rec)
+func (l *IOLog) LogAny(tag string, fn func() ([]byte, interface{}, error)) error {
+	start := time.Now()
+	data, iface, err := fn()
+	if l.active {
+		rec := &Record{
+			Tag:       tag,
+			Start:     start,
+			Stop:      time.Now(),
+			Interface: iface,
+			Error:     err,
+		}
+		if len(data) > 0 {
+			rec.Data = make([]byte, len(data))
+			copy(rec.Data, data)
+		}
+		l.records = append(l.records, rec)
+	}
 	return err
 }
 
+func (l *IOLog) Len() int {
+	return len(l.records)
+}
+
 func (l *IOLog) ClearLog() {
+	l.active = true
 	if cap(l.records) == l.cap {
 		l.records = l.records[:0]
 	} else {
@@ -46,11 +71,8 @@ func (l *IOLog) ClearLog() {
 	}
 }
 
-func (l *IOLog) Len() int {
-	return len(l.records)
-}
-
 func (l *IOLog) Records() []*Record {
+	l.active = false
 	return l.records
 }
 
