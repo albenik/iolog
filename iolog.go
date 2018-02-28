@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"time"
 
-	"github.com/albenik/goerrors"
+	"github.com/pkg/errors"
 )
 
 type IOFunc func([]byte) (int, error)
