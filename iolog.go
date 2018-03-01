@@ -11,12 +11,11 @@ type IOFunc func([]byte) (int, error)
 
 type IOLog struct {
 	records []*Record
-	cap     int // Initial capacity
 	active  bool
 }
 
-func New(cap int) *IOLog {
-	return &IOLog{records: make([]*Record, 0, cap), cap: cap}
+func New() *IOLog {
+	return &IOLog{}
 }
 
 func (l *IOLog) LogIO(tag string, iofn IOFunc, data []byte) (int, error) {
@@ -64,22 +63,20 @@ func (l *IOLog) LogAny(tag string, fn func() (interface{}, error)) error {
 	return err
 }
 
+func (l *IOLog) Star() {
+	l.records = make([]*Record, 0, 128)
+	l.active = true
+}
+
+func (l *IOLog) Stop() []*Record {
+	l.active = false
+	r := l.records
+	l.records = nil
+	return r
+}
+
 func (l *IOLog) Len() int {
 	return len(l.records)
-}
-
-func (l *IOLog) ClearLog() {
-	l.active = true
-	if cap(l.records) == l.cap {
-		l.records = l.records[:0]
-	} else {
-		l.records = make([]*Record, l.cap)
-	}
-}
-
-func (l *IOLog) Records() []*Record {
-	l.active = false
-	return l.records
 }
 
 func (l *IOLog) LastRecord() *Record {
