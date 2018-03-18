@@ -63,7 +63,7 @@ func (l *IOLog) LogAny(tag string, fn func() (interface{}, error)) error {
 	return err
 }
 
-func (l *IOLog) Star() {
+func (l *IOLog) Start() {
 	l.records = make([]*Record, 0, 128)
 	l.active = true
 }

@@ -14,7 +14,7 @@ var testdata = []byte{1, 2, 3, 4, 5, 6, 7, 8}
 
 func TestIOLog_LogIO(t *testing.T) {
 	l := iolog.New()
-	l.Star()
+	l.Start()
 	buf := make([]byte, len(testdata))
 
 	src := bytes.NewReader(testdata)
@@ -39,7 +39,7 @@ func TestIOLog_LogIO(t *testing.T) {
 
 func TestIOLog_LogAny(t *testing.T) {
 	l := iolog.New()
-	l.Star()
+	l.Start()
 	err := l.LogAny("any", func() (interface{}, error) {
 		return 777, nil
 	})
