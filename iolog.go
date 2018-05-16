@@ -2,9 +2,8 @@ package iolog
 
 import (
 	"bytes"
+	"errors"
 	"time"
-
-	"github.com/pkg/errors"
 )
 
 type IOFunc func([]byte) (int, error)
