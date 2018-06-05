@@ -1,96 +1,112 @@
 package iolog
 
 import (
-	"bytes"
 	"errors"
+	"fmt"
 	"time"
 )
 
 type IOFunc func([]byte) (int, error)
 
 type IOLog struct {
-	records []*Record
 	active  bool
+	first   *item
+	current *item
+	len     int
+	maxlen  int
 }
 
-func New() *IOLog {
-	return &IOLog{}
+func New(l int) *IOLog {
+	if l < 3 {
+		panic(errors.New("iolog: maxlen too small"))
+	}
+	return &IOLog{maxlen: l}
 }
 
-func (l *IOLog) LogIO(tag string, iofn IOFunc, data []byte) (int, error) {
+func (l *IOLog) append(r *Record) {
+	i := newItem(r)
+
+	if l.current == nil {
+		l.first = i
+	} else {
+		l.current.next = i
+	}
+	l.current = i
+
+	if l.len < l.maxlen {
+		l.len++
+		return
+	}
+
+	if l.len >= l.maxlen {
+		first := l.first
+		l.first = first.next
+		first.free()
+	}
+}
+
+func (l *IOLog) LogIO(t string, fn IOFunc, p []byte) (int, error) {
 	start := time.Now()
-	n, err := iofn(data)
+	n, err := fn(p)
 	if l.active {
-		rec := &Record{
-			Tag:   tag,
-			Start: start,
-			Stop:  time.Now(),
-			Error: err,
-		}
+		r := newRecord(t, start, time.Now(), err)
 		if n > 0 {
-			p := make([]byte, n)
-			copy(p, data)
-			rec.Data = p
+			data := make([]byte, n)
+			copy(data, p)
+			r.Data = data
 		}
-		l.records = append(l.records, rec)
+		l.append(r)
 	}
 	return n, err
 }
 
-func (l *IOLog) LogAny(tag string, fn func() (interface{}, error)) error {
+func (l *IOLog) LogAny(t string, fn func() (interface{}, error)) error {
 	start := time.Now()
 	data, err := fn()
 	if l.active {
-		rec := &Record{
-			Tag:   tag,
-			Start: start,
-			Stop:  time.Now(),
-			Error: err,
-		}
+		r := newRecord(t, start, time.Now(), err)
 		switch src := data.(type) {
 		case []byte:
 			if len(src) > 0 {
 				p := make([]byte, len(src))
 				copy(p, src)
-				rec.Data = p
+				r.Data = p
 			}
 		default:
-			rec.Data = data
+			r.Data = data
 		}
-		l.records = append(l.records, rec)
+		l.append(r)
 	}
 	return err
 }
 
 func (l *IOLog) Start() {
-	l.records = make([]*Record, 0, 128)
+	l.first = nil
+	l.current = nil
+	l.len = 0
 	l.active = true
 }
 
 func (l *IOLog) Stop() []*Record {
 	l.active = false
-	r := l.records
-	l.records = nil
-	return r
+	list := make([]*Record, 0, l.len)
+
+	item := l.first
+	for item != nil {
+		list = append(list, item.rec)
+		item = item.next
+	}
+	return list
 }
 
 func (l *IOLog) Len() int {
-	return len(l.records)
+	return l.len
 }
 
 func (l *IOLog) LastRecord() *Record {
-	if len(l.records) == 0 {
-		now := time.Now()
-		l.records = append(l.records, &Record{Tag: "error", Start: now, Error: errors.New("iolog.LastRecord() called for empty log")})
-	}
-	return l.records[len(l.records)-1]
+	return l.current.rec
 }
 
 func (l *IOLog) String() string {
-	var buf bytes.Buffer
-	for _, rec := range l.records {
-		buf.WriteString(rec.String())
-		buf.WriteRune('\n')
-	}
-	return buf.String()
+	return fmt.Sprintf("iolog{active:%v, len:%d, maxlen:%d}", l.active, l.len, l.maxlen)
 }

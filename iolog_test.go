@@ -13,7 +13,7 @@ import (
 var testdata = []byte{1, 2, 3, 4, 5, 6, 7, 8}
 
 func TestIOLog_LogIO(t *testing.T) {
-	l := iolog.New()
+	l := iolog.New(128)
 	l.Start()
 	buf := make([]byte, len(testdata))
 
@@ -24,7 +24,7 @@ func TestIOLog_LogIO(t *testing.T) {
 	assert.Equal(t, len(testdata), n)
 	assert.Equal(t, testdata, buf)
 	if assert.Equal(t, 1, l.Len()) {
-		assert.True(t, strings.HasPrefix(l.LastRecord().String(), "read [01 02 03 04 05 06 07 08]"))
+		assert.True(t, strings.HasPrefix(l.LastRecord().String(), "read [01 02 03 04 05 06 07 08]"), l.LastRecord().String())
 	}
 
 	dst := bytes.NewBuffer(make([]byte, 8))
@@ -33,12 +33,12 @@ func TestIOLog_LogIO(t *testing.T) {
 	assert.Equal(t, len(testdata), n)
 	assert.Equal(t, testdata, buf)
 	if assert.Equal(t, 2, l.Len()) {
-		assert.True(t, strings.HasPrefix(l.LastRecord().String(), "write [01 02 03 04 05 06 07 08]"))
+		assert.True(t, strings.HasPrefix(l.LastRecord().String(), "write [01 02 03 04 05 06 07 08]"), l.LastRecord().String())
 	}
 }
 
 func TestIOLog_LogAny(t *testing.T) {
-	l := iolog.New()
+	l := iolog.New(128)
 	l.Start()
 	err := l.LogAny("any", func() (interface{}, error) {
 		return 777, nil

@@ -2,8 +2,31 @@ package iolog
 
 import (
 	"fmt"
+	"sync"
 	"time"
 )
+
+type item struct {
+	rec  *Record
+	next *item
+}
+
+var itemPool = sync.Pool{
+	New: func() interface{} { return new(item) },
+}
+
+func newItem(r *Record) *item {
+	i := itemPool.Get().(*item)
+	i.rec = r
+	i.next = nil
+	return i
+}
+
+func (i *item) free() {
+	i.rec = nil
+	i.next = nil
+	itemPool.Put(i)
+}
 
 type Record struct {
 	Tag   string
@@ -11,6 +34,26 @@ type Record struct {
 	Stop  time.Time
 	Data  interface{}
 	Error error
+}
+
+var recordPool = sync.Pool{
+	New: func() interface{} { return new(Record) },
+}
+
+func newRecord(t string, s, f time.Time, e error) *Record {
+	r := recordPool.Get().(*Record)
+	r.Tag = t
+	r.Start = s
+	r.Stop = f
+	r.Error = e
+	r.Data = nil
+	return r
+}
+
+func (r *Record) free() {
+	r.Data = nil
+	r.Error = nil
+	recordPool.Put(r)
 }
 
 func (r *Record) String() string {
