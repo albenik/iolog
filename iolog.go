@@ -8,6 +8,8 @@ import (
 
 type IOFunc func([]byte) (int, error)
 
+type AnyFunc func() (interface{}, error)
+
 type IOLog struct {
 	active  bool
 	first   *item
@@ -60,24 +62,24 @@ func (l *IOLog) LogIO(t string, fn IOFunc, p []byte) (int, error) {
 	return n, err
 }
 
-func (l *IOLog) LogAny(t string, fn func() (interface{}, error)) error {
+func (l *IOLog) LogAny(t string, fn AnyFunc) (interface{}, error) {
 	start := time.Now()
-	data, err := fn()
+	res, err := fn()
 	if l.active {
 		r := newRecord(t, start, time.Now(), err)
-		switch src := data.(type) {
+		switch src := res.(type) {
 		case []byte:
 			if len(src) > 0 {
-				p := make([]byte, len(src))
-				copy(p, src)
-				r.Data = p
+				data := make([]byte, len(src))
+				copy(data, src)
+				r.Data = data
 			}
 		default:
-			r.Data = data
+			r.Data = res
 		}
 		l.append(r)
 	}
-	return err
+	return res, err
 }
 
 func (l *IOLog) Start() {
