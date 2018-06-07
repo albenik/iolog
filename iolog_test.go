@@ -40,11 +40,13 @@ func TestIOLog_LogIO(t *testing.T) {
 func TestIOLog_LogAny(t *testing.T) {
 	l := iolog.New(128)
 	l.Start()
-	err := l.LogAny("any", func() (interface{}, error) {
+	val, err := l.LogAny("any", func() (interface{}, error) {
 		return 777, nil
 	})
 
-	assert.NoError(t, err)
+	if !assert.NoError(t, err) || !assert.Equal(t, 777, val) {
+		t.FailNow()
+	}
 	if assert.Equal(t, 1, l.Len()) {
 		assert.True(t, strings.HasPrefix(l.LastRecord().String(), "any 777"), "%q", l.LastRecord().String())
 	}
