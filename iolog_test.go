@@ -42,12 +42,27 @@ func TestIOLog_LogAny(t *testing.T) {
 	l.Start()
 	val, err := l.LogAny("any", func() (interface{}, error) {
 		return 777, nil
-	})
+	}, true)
 
 	if !assert.NoError(t, err) || !assert.Equal(t, 777, val) {
 		t.FailNow()
 	}
 	if assert.Equal(t, 1, l.Len()) {
 		assert.True(t, strings.HasPrefix(l.LastRecord().String(), "any 777"), "%q", l.LastRecord().String())
+	}
+}
+
+func TestIOLog_LogAnyNoData(t *testing.T) {
+	l := iolog.New(128)
+	l.Start()
+	val, err := l.LogAny("any", func() (interface{}, error) {
+		return 777, nil
+	}, false)
+
+	if !assert.NoError(t, err) || !assert.Equal(t, 777, val) {
+		t.FailNow()
+	}
+	if assert.Equal(t, 1, l.Len()) {
+		assert.True(t, strings.HasPrefix(l.LastRecord().String(), "any <nil>"), "%q", l.LastRecord().String())
 	}
 }

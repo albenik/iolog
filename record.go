@@ -62,19 +62,13 @@ func (r *Record) String() string {
 		stop = r.Start
 	}
 	var datastr string
-	if r.Data != nil { // if not any typed value (but typed <nil> allowed)
-		switch d := r.Data.(type) {
-		case []byte:
-			datastr = fmt.Sprintf("[% X]", d)
-		case fmt.Stringer:
-			if d == nil {
-				datastr = "nil"
-			} else {
-				datastr = d.String()
-			}
-		default:
-			datastr = fmt.Sprintf("%+v", d)
-		}
+	switch d := r.Data.(type) {
+	case []byte:
+		datastr = fmt.Sprintf("[% X]", d)
+	case fmt.Stringer:
+		datastr = d.String()
+	default:
+		datastr = fmt.Sprintf("%+v", d)
 	}
 	const tf = "2006-01-02T15:04:05.000-0700"
 	return fmt.Sprintf("%s %s (%s) %s / %s error: %v", r.Tag, datastr, stop.Sub(r.Start), r.Start.Format(tf), r.Start.Format(tf), r.Error)

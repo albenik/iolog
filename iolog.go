@@ -62,20 +62,22 @@ func (l *IOLog) LogIO(t string, fn IOFunc, p []byte) (int, error) {
 	return n, err
 }
 
-func (l *IOLog) LogAny(t string, fn AnyFunc) (interface{}, error) {
+func (l *IOLog) LogAny(t string, fn AnyFunc, logdata bool) (interface{}, error) {
 	start := time.Now()
 	res, err := fn()
 	if l.active {
 		r := newRecord(t, start, time.Now(), err)
-		switch src := res.(type) {
-		case []byte:
-			if len(src) > 0 {
-				data := make([]byte, len(src))
-				copy(data, src)
-				r.Data = data
+		if logdata {
+			switch src := res.(type) {
+			case []byte:
+				if len(src) > 0 {
+					data := make([]byte, len(src))
+					copy(data, src)
+					r.Data = data
+				}
+			default:
+				r.Data = res
 			}
-		default:
-			r.Data = res
 		}
 		l.append(r)
 	}
