@@ -8,7 +8,4 @@ install:
   - go get -u golang.org/x/vgo
 
 script:
-  - test -z $(gofmt -s -l $GO_FILES)
-  - vgo list -m
-  - vgo test -v -race
-  - vgo vet -v
+  make
