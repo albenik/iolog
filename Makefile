@@ -13,9 +13,9 @@ list:
 
 .PHONY: test
 test:
-	@test -z $(shell gofmt -s -l $(SRC) | tee /dev/stderr) || echo "[WARN] Project has a formatting issues!"
-	@$(GO) vet -v .
-	@$(GO) test -v -race ./...
+	echo $(MKFILE_DIR)
+	test -z $(shell gofmt -s -l $(SRC) | tee /dev/stderr) || echo "[WARN] Project has a formatting issues!"
+	$(GO) test -v -race ./...
 
 .PHONY: build
 build:
